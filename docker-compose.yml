@@ -1,0 +1,36 @@
+services:
+
+  # NOTE: Create database: secumon
+  # TODO: Use migrate
+  postgres:
+    image: postgres:alpine
+    restart: always
+    shm_size: 128mb
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - 15432:5432
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 18080:8080
+
+  redis:
+    image: bitnami/redis:latest
+    restart: always
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - 16379:6379
+
+  # NOTE: Set user and password for test purpose
+  # docker exec -it secumon-rabbitmq-1 rabbitmqctl add_user "secumon" "secumon"
+  # docker exec -it secumon-rabbitmq-1 rabbitmqctl set_permissions -p / secumon ".*" ".*" ".*"
+  rabbitmq:
+    image: bitnami/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: always
