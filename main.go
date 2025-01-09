@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/chenmuyao/secumon/internal/web/logmonitor"
 	"github.com/gin-gonic/gin"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/redis/go-redis/v9"
@@ -74,6 +75,9 @@ func main() {
 		}
 		ctx.String(http.StatusOK, "So far so good")
 	})
+
+	hdl := logmonitor.NewLogHandler()
+	hdl.RegisterHandlers(server)
 
 	server.Run(":8989")
 }
