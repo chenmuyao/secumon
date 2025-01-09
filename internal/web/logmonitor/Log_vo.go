@@ -1,9 +1,9 @@
 package logmonitor
 
 type AccessLog struct {
-	Timestamp  string `json:"timestamp"`
-	ClientIP   string `json:"client_ip"`
-	Endpoint   string `json:"endpoint"`
-	Method     string `json:"method"`
-	StatusCode int    `json:"status_code"`
+	Timestamp  string `json:"timestamp"   binding:"required"`
+	ClientIP   string `json:"client_ip"   binding:"ip"`
+	Endpoint   string `json:"endpoint"    binding:"required"`
+	Method     string `json:"method"      binding:"required"`
+	StatusCode int    `json:"status_code" binding:"required"`
 }

@@ -30,6 +30,7 @@ func TestAccessLogAPI(t *testing.T) {
 "method": "GET",
 "status_code": 401
 }`)))
+				req.Header.Set("Content-Type", "application/json")
 				assert.NoError(t, err)
 				return req
 			},
@@ -45,13 +46,14 @@ func TestAccessLogAPI(t *testing.T) {
 "method": "GET",
 "status_code401
 }`)))
+				req.Header.Set("Content-Type", "application/json")
 				assert.NoError(t, err)
 				return req
 			},
 			wantCode: http.StatusBadRequest,
 		},
 		{
-			Name: "unknown fields",
+			Name: "unknown fields, just ignore but ok",
 			reqBuilder: func(t *testing.T) *http.Request {
 				req, err := http.NewRequest(http.MethodPost, "/logs", bytes.NewBuffer([]byte(`{
 "timestamp": "2025-01-08T12:00:00Z",
@@ -59,12 +61,13 @@ func TestAccessLogAPI(t *testing.T) {
 "endpoint": "/api/v1/resource",
 "method": "GET",
 "status_code": 401,
-"other_things": "something",
+"other_things": "something"
 }`)))
+				req.Header.Set("Content-Type", "application/json")
 				assert.NoError(t, err)
 				return req
 			},
-			wantCode: http.StatusBadRequest,
+			wantCode: http.StatusOK,
 		},
 		{
 			Name: "missing fields",
@@ -73,8 +76,9 @@ func TestAccessLogAPI(t *testing.T) {
 "client_ip": "192.168.1.1",
 "endpoint": "/api/v1/resource",
 "method": "GET",
-"status_code": 401,
+"status_code": 401
 }`)))
+				req.Header.Set("Content-Type", "application/json")
 				assert.NoError(t, err)
 				return req
 			},
@@ -90,6 +94,7 @@ func TestAccessLogAPI(t *testing.T) {
 "method": "GET",
 "status_code": 401
 }`)))
+				req.Header.Set("Content-Type", "application/json")
 				assert.NoError(t, err)
 				return req
 			},
@@ -105,6 +110,7 @@ func TestAccessLogAPI(t *testing.T) {
 "method": "GET",
 "status_code": 401
 }`)))
+				req.Header.Set("Content-Type", "application/json")
 				assert.NoError(t, err)
 				return req
 			},
@@ -128,4 +134,9 @@ func TestAccessLogAPI(t *testing.T) {
 			assert.Equal(t, tc.wantCode, rec.Code)
 		})
 	}
+}
+
+// limit unnecessary logs
+func init() {
+	gin.SetMode(gin.ReleaseMode)
 }
