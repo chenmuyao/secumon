@@ -35,6 +35,81 @@ func TestAccessLogAPI(t *testing.T) {
 			},
 			wantCode: http.StatusOK,
 		},
+		{
+			Name: "wrong json format",
+			reqBuilder: func(t *testing.T) *http.Request {
+				req, err := http.NewRequest(http.MethodPost, "/logs", bytes.NewBuffer([]byte(`{
+"timestamp": "2025-01-08T12:00:00Z",
+"client_ip": "192.168.1.1",
+"endpoint": "/api/v1/resource",
+"method": "GET",
+"status_code401
+}`)))
+				assert.NoError(t, err)
+				return req
+			},
+			wantCode: http.StatusBadRequest,
+		},
+		{
+			Name: "unknown fields",
+			reqBuilder: func(t *testing.T) *http.Request {
+				req, err := http.NewRequest(http.MethodPost, "/logs", bytes.NewBuffer([]byte(`{
+"timestamp": "2025-01-08T12:00:00Z",
+"client_ip": "192.168.1.1",
+"endpoint": "/api/v1/resource",
+"method": "GET",
+"status_code": 401,
+"other_things": "something",
+}`)))
+				assert.NoError(t, err)
+				return req
+			},
+			wantCode: http.StatusBadRequest,
+		},
+		{
+			Name: "missing fields",
+			reqBuilder: func(t *testing.T) *http.Request {
+				req, err := http.NewRequest(http.MethodPost, "/logs", bytes.NewBuffer([]byte(`{
+"client_ip": "192.168.1.1",
+"endpoint": "/api/v1/resource",
+"method": "GET",
+"status_code": 401,
+}`)))
+				assert.NoError(t, err)
+				return req
+			},
+			wantCode: http.StatusBadRequest,
+		},
+		{
+			Name: "wrong time format",
+			reqBuilder: func(t *testing.T) *http.Request {
+				req, err := http.NewRequest(http.MethodPost, "/logs", bytes.NewBuffer([]byte(`{
+"timestamp": "2025-01-08",
+"client_ip": "192.168.1.1",
+"endpoint": "/api/v1/resource",
+"method": "GET",
+"status_code": 401
+}`)))
+				assert.NoError(t, err)
+				return req
+			},
+			wantCode: http.StatusBadRequest,
+		},
+		{
+			Name: "wrong client IP",
+			reqBuilder: func(t *testing.T) *http.Request {
+				req, err := http.NewRequest(http.MethodPost, "/logs", bytes.NewBuffer([]byte(`{
+"timestamp": "2025-01-08T12:00:00Z",
+"client_ip": "192.168.1",
+"endpoint": "/api/v1/resource",
+"method": "GET",
+"status_code": 401
+}`)))
+				assert.NoError(t, err)
+				return req
+			},
+			wantCode: http.StatusBadRequest,
+		},
 	}
 
 	for _, tc := range testCases {
