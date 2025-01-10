@@ -19,6 +19,7 @@ func TestAccessLogAPI(t *testing.T) {
 
 		// Outputs
 		wantCode int
+		wantRes  string
 	}{
 		{
 			Name: "test ok",
@@ -35,6 +36,10 @@ func TestAccessLogAPI(t *testing.T) {
 				return req
 			},
 			wantCode: http.StatusOK,
+			wantRes: `{
+"status": "success",
+"message": "Log received and queued."
+}`,
 		},
 		{
 			Name: "wrong json format",
@@ -68,6 +73,10 @@ func TestAccessLogAPI(t *testing.T) {
 				return req
 			},
 			wantCode: http.StatusOK,
+			wantRes: `{
+"status": "success",
+"message": "Log received and queued."
+}`,
 		},
 		{
 			Name: "missing fields",

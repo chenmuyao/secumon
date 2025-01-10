@@ -39,7 +39,7 @@ func (l *LogHandler) AccessLog(ctx *gin.Context) {
 
 	slog.Debug("access log", slog.Any("al", req))
 
-	ctx.Status(http.StatusOK)
+	ctx.JSON(http.StatusOK, ResultLogOK)
 }
 
 func (l *LogHandler) checkDateTime(dt string) error {
