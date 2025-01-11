@@ -77,12 +77,17 @@ func main() {
 		ctx.String(http.StatusOK, "So far so good")
 	})
 
-	const topicName = "api-security-logs"
-	err := monitor.AccessLogExchangeSetup(amqpConn, topicName)
+	const exchangeName = "api-security-logs"
+	qName, err := monitor.AccessLogMQSetup(amqpConn, exchangeName)
 	if err != nil {
 		panic(err)
 	}
-	publisher := monitor.NewRabbitMQLogMonitorPublisher(amqpConn, topicName)
+	publisher := monitor.NewRabbitMQLogMonitorPublisher(amqpConn, exchangeName)
+
+	err = monitor.NewRabbitMQLogMonitorConsumer(amqpConn).StartConsumer(exchangeName, qName)
+	if err != nil {
+		panic(err)
+	}
 
 	hdl := logmonitor.NewLogHandler(publisher)
 	hdl.RegisterHandlers(server)
