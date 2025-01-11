@@ -5,16 +5,20 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/chenmuyao/secumon/internal/domain"
+	"github.com/chenmuyao/secumon/internal/event/monitor"
 	"github.com/gin-gonic/gin"
 )
 
 type LogHandler struct {
 	timeFormat string
+	publisher  monitor.LogMonitorPublisher
 }
 
-func NewLogHandler() *LogHandler {
+func NewLogHandler(publisher monitor.LogMonitorPublisher) *LogHandler {
 	return &LogHandler{
 		timeFormat: "2006-01-02T03:04:05Z",
+		publisher:  publisher,
 	}
 }
 
@@ -30,7 +34,7 @@ func (l *LogHandler) AccessLog(ctx *gin.Context) {
 		return
 	}
 
-	err = l.checkDateTime(req.Timestamp)
+	t, err := time.Parse(l.timeFormat, req.Timestamp)
 	if err != nil {
 		slog.Error("access log input time error", slog.Any("err", err), slog.Any("req", req))
 		ctx.Status(http.StatusBadRequest)
@@ -39,10 +43,18 @@ func (l *LogHandler) AccessLog(ctx *gin.Context) {
 
 	slog.Debug("access log", slog.Any("al", req))
 
-	ctx.JSON(http.StatusOK, ResultLogOK)
-}
+	err = l.publisher.Publish(ctx, domain.AccessLog{
+		Timestamp:  t,
+		ClientIP:   req.ClientIP,
+		Endpoint:   req.Endpoint,
+		Method:     req.Method,
+		StatusCode: req.StatusCode,
+	})
+	if err != nil {
+		slog.Error("publish log error", slog.Any("err", err), slog.Any("req", req))
+		ctx.JSON(http.StatusInternalServerError, ResultLogErrPublish)
+		return
+	}
 
-func (l *LogHandler) checkDateTime(dt string) error {
-	_, err := time.Parse(l.timeFormat, dt)
-	return err
+	ctx.JSON(http.StatusOK, ResultLogOK)
 }

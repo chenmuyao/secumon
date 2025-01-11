@@ -1,11 +1,16 @@
 package logmonitor
 
 type Result struct {
-	status  string `json:"status"`
-	message string `json:"message"`
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }
 
 var ResultLogOK = Result{
-	status:  "sucess",
-	message: "Log received and queued",
+	Status:  "success",
+	Message: "Log received and queued",
+}
+
+var ResultLogErrPublish = Result{
+	Status:  "fail",
+	Message: "Log received but not queued",
 }

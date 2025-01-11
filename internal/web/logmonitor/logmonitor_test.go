@@ -2,24 +2,32 @@ package logmonitor
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/chenmuyao/secumon/internal/domain"
+	"github.com/chenmuyao/secumon/internal/event/monitor"
+	monitormocks "github.com/chenmuyao/secumon/internal/event/monitor/mocks"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func TestAccessLogAPI(t *testing.T) {
 	testCases := []struct {
 		Name string
 
+		mock func(ctrl *gomock.Controller) monitor.LogMonitorPublisher
+
 		// Inputs
 		reqBuilder func(t *testing.T) *http.Request
 
 		// Outputs
 		wantCode int
-		wantRes  string
+		wantRes  Result
 	}{
 		{
 			Name: "test ok",
@@ -35,11 +43,19 @@ func TestAccessLogAPI(t *testing.T) {
 				assert.NoError(t, err)
 				return req
 			},
+			mock: func(ctrl *gomock.Controller) monitor.LogMonitorPublisher {
+				p := monitormocks.NewMockLogMonitorPublisher(ctrl)
+				p.EXPECT().Publish(gomock.Any(), domain.AccessLog{
+					Timestamp:  time.Date(2025, time.January, 8, 12, 0, 0, 0, time.UTC),
+					ClientIP:   "192.168.1.1",
+					Endpoint:   "/api/v1/resource",
+					Method:     "GET",
+					StatusCode: 401,
+				}).Return(nil)
+				return p
+			},
 			wantCode: http.StatusOK,
-			wantRes: `{
-"status": "success",
-"message": "Log received and queued."
-}`,
+			wantRes:  ResultLogOK,
 		},
 		{
 			Name: "wrong json format",
@@ -54,6 +70,10 @@ func TestAccessLogAPI(t *testing.T) {
 				req.Header.Set("Content-Type", "application/json")
 				assert.NoError(t, err)
 				return req
+			},
+			mock: func(ctrl *gomock.Controller) monitor.LogMonitorPublisher {
+				p := monitormocks.NewMockLogMonitorPublisher(ctrl)
+				return p
 			},
 			wantCode: http.StatusBadRequest,
 		},
@@ -72,11 +92,19 @@ func TestAccessLogAPI(t *testing.T) {
 				assert.NoError(t, err)
 				return req
 			},
+			mock: func(ctrl *gomock.Controller) monitor.LogMonitorPublisher {
+				p := monitormocks.NewMockLogMonitorPublisher(ctrl)
+				p.EXPECT().Publish(gomock.Any(), domain.AccessLog{
+					Timestamp:  time.Date(2025, time.January, 8, 12, 0, 0, 0, time.UTC),
+					ClientIP:   "192.168.1.1",
+					Endpoint:   "/api/v1/resource",
+					Method:     "GET",
+					StatusCode: 401,
+				}).Return(nil)
+				return p
+			},
 			wantCode: http.StatusOK,
-			wantRes: `{
-"status": "success",
-"message": "Log received and queued."
-}`,
+			wantRes:  ResultLogOK,
 		},
 		{
 			Name: "missing fields",
@@ -90,6 +118,10 @@ func TestAccessLogAPI(t *testing.T) {
 				req.Header.Set("Content-Type", "application/json")
 				assert.NoError(t, err)
 				return req
+			},
+			mock: func(ctrl *gomock.Controller) monitor.LogMonitorPublisher {
+				p := monitormocks.NewMockLogMonitorPublisher(ctrl)
+				return p
 			},
 			wantCode: http.StatusBadRequest,
 		},
@@ -107,6 +139,10 @@ func TestAccessLogAPI(t *testing.T) {
 				assert.NoError(t, err)
 				return req
 			},
+			mock: func(ctrl *gomock.Controller) monitor.LogMonitorPublisher {
+				p := monitormocks.NewMockLogMonitorPublisher(ctrl)
+				return p
+			},
 			wantCode: http.StatusBadRequest,
 		},
 		{
@@ -123,14 +159,20 @@ func TestAccessLogAPI(t *testing.T) {
 				assert.NoError(t, err)
 				return req
 			},
+			mock: func(ctrl *gomock.Controller) monitor.LogMonitorPublisher {
+				p := monitormocks.NewMockLogMonitorPublisher(ctrl)
+				return p
+			},
 			wantCode: http.StatusBadRequest,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			publisher := tc.mock(ctrl)
 			// create the test server
-			hdl := NewLogHandler()
+			hdl := NewLogHandler(publisher)
 			server := gin.Default()
 
 			hdl.RegisterHandlers(server)
@@ -141,6 +183,12 @@ func TestAccessLogAPI(t *testing.T) {
 			server.ServeHTTP(rec, req)
 
 			assert.Equal(t, tc.wantCode, rec.Code)
+			var res Result
+			if tc.wantRes != res {
+				err := json.NewDecoder(rec.Body).Decode(&res)
+				assert.NoError(t, err)
+				assert.Equal(t, tc.wantRes, res)
+			}
 		})
 	}
 }

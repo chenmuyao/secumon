@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/chenmuyao/secumon/internal/event/monitor"
 	"github.com/chenmuyao/secumon/internal/web/logmonitor"
 	"github.com/gin-gonic/gin"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -76,7 +77,14 @@ func main() {
 		ctx.String(http.StatusOK, "So far so good")
 	})
 
-	hdl := logmonitor.NewLogHandler()
+	const topicName = "api-security-logs"
+	err := monitor.AccessLogExchangeSetup(amqpConn, topicName)
+	if err != nil {
+		panic(err)
+	}
+	publisher := monitor.NewRabbitMQLogMonitorPublisher(amqpConn, topicName)
+
+	hdl := logmonitor.NewLogHandler(publisher)
 	hdl.RegisterHandlers(server)
 
 	server.Run(":8989")
