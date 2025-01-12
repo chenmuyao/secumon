@@ -7,6 +7,9 @@ import (
 	"time"
 
 	"github.com/chenmuyao/secumon/internal/event/monitor"
+	"github.com/chenmuyao/secumon/internal/repository"
+	"github.com/chenmuyao/secumon/internal/repository/cache"
+	svc "github.com/chenmuyao/secumon/internal/service/logmonitor"
 	"github.com/chenmuyao/secumon/internal/web/logmonitor"
 	"github.com/gin-gonic/gin"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -87,7 +90,15 @@ func main() {
 	}
 	publisher := monitor.NewRabbitMQLogMonitorPublisher(amqpConn, exchangeName)
 
-	err = monitor.NewRabbitMQLogMonitorConsumer(amqpConn).StartConsumer(exchangeName, qName)
+	repo := repository.NewLogRepo()
+
+	bfCache := cache.NewBruteForceChecker(redis)
+
+	bfDetector := svc.NewBruteForceDetector(repo, bfCache)
+
+	err = monitor.NewRabbitMQLogMonitorConsumer(amqpConn).
+		UseBruteForceDetector(bfDetector).
+		StartConsumer(exchangeName, qName)
 	if err != nil {
 		panic(err)
 	}
