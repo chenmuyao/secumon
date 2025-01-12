@@ -43,6 +43,10 @@ func (l *LogHandler) AccessLog(ctx *gin.Context) {
 
 	slog.Debug("access log", slog.Any("al", req))
 
+	// TODO: To improve the performance, we could create a standalone goroutine
+	// for the publisher. Here we simply push the log into a queue, and
+	// the publisher process publishes a batch at a time, so that we can
+	// reuse the channel and other connection ressources.
 	err = l.publisher.Publish(ctx, domain.AccessLog{
 		Timestamp:  t,
 		ClientIP:   req.ClientIP,

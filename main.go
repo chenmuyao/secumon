@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -19,6 +20,8 @@ type Test struct {
 }
 
 func main() {
+	slog.SetLogLoggerLevel(slog.LevelDebug)
+
 	// Init DB (GORM)
 	db := InitDB()
 	// Init Redis

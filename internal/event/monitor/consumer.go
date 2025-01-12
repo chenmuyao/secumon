@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/chenmuyao/secumon/internal/domain"
+	"github.com/chenmuyao/secumon/internal/service/logmonitor"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"golang.org/x/sync/errgroup"
 )
 
 type LogMonitorConsumer interface {
@@ -18,12 +20,23 @@ type RabbitMQLogMonitorConsumer struct {
 	conn           *amqp.Connection
 	ch             *amqp.Channel
 	consumeTimeout time.Duration
+
+	// detectors
+	bfDetector logmonitor.BruteForceDetector
 }
 
 // Consume implements LogMonitorConsumer.
 func (r *RabbitMQLogMonitorConsumer) Consume(ctx context.Context, log domain.AccessLog) error {
 	slog.Debug("Consuming log", slog.Any("log", log))
-	return nil
+	eg := errgroup.Group{}
+
+	if r.bfDetector != nil {
+		eg.Go(func() error {
+			return r.bfDetector.Detect(ctx, log)
+		})
+	}
+
+	return eg.Wait()
 }
 
 func (r *RabbitMQLogMonitorConsumer) StartConsumer(
@@ -72,6 +85,13 @@ func (r *RabbitMQLogMonitorConsumer) handle(deliveries <-chan amqp.Delivery) {
 		}
 		cancel()
 	}
+}
+
+func (r *RabbitMQLogMonitorConsumer) UseBruteForceDetector(
+	bf logmonitor.BruteForceDetector,
+) *RabbitMQLogMonitorConsumer {
+	r.bfDetector = bf
+	return r
 }
 
 func NewRabbitMQLogMonitorConsumer(conn *amqp.Connection) *RabbitMQLogMonitorConsumer {
