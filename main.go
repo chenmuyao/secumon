@@ -2,9 +2,10 @@ package main
 
 import (
 	"log"
-	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/gin-contrib/pprof"
 
 	"github.com/chenmuyao/secumon/internal/event/monitor"
 	"github.com/chenmuyao/secumon/internal/repository"
@@ -25,7 +26,7 @@ type Test struct {
 }
 
 func main() {
-	slog.SetLogLoggerLevel(slog.LevelDebug)
+	// slog.SetLogLoggerLevel(slog.LevelDebug)
 
 	// Init DB (GORM)
 	db := InitDB()
@@ -38,7 +39,6 @@ func main() {
 	// Init Services
 
 	// Run Webserver
-
 	server := gin.Default()
 	server.GET("/", func(ctx *gin.Context) {
 		// Test redis
@@ -111,6 +111,7 @@ func main() {
 	hdl := logmonitor.NewLogHandler(publisher, alertSvc)
 	hdl.RegisterHandlers(server)
 
+	pprof.Register(server)
 	server.Run(":8989")
 }
 
