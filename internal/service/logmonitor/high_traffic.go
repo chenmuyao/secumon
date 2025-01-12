@@ -10,28 +10,28 @@ import (
 	"github.com/chenmuyao/secumon/internal/repository/cache"
 )
 
-type BruteForceDetector struct {
-	repo              repository.LogRepo
-	bruteForceChecker *cache.BruteForceChecker
-	alertCache        cache.AlertCache
+type HighTrafficDetector struct {
+	repo               repository.LogRepo
+	highTrafficChecker *cache.HighTrafficChecker
+	alertCache         cache.AlertCache
 }
 
-// Detect implements BruteForceDetector.
-func (b *BruteForceDetector) Detect(ctx context.Context, log domain.AccessLog) error {
+// Detect implements HighTrafficDetector.
+func (b *HighTrafficDetector) Detect(ctx context.Context, log domain.AccessLog) error {
 	// Use the brute-force checker to check if it is an attack
-	secuEvt, err := b.bruteForceChecker.Check(ctx, log)
+	secuEvt, err := b.highTrafficChecker.Check(ctx, log)
 	if err != nil {
 		// Probably a redis error. Since all the service depends on redis,
 		// if an error happens, just don't bother and return.
 		return err
 	}
-	// Not considered as a brute force attack
+	// Not considered as a high traffic attack
 	if secuEvt.Type == "" {
 		return nil
 	}
 	// In case of an attack
 	// Log
-	slog.Info("[ALERT] Brute force attack detected", slog.Any("IP", secuEvt.ClientIP))
+	slog.Info("[ALERT] high traffic detected", slog.Any("IP", secuEvt.ClientIP))
 	// write the DB
 
 	err = b.repo.UpsertSecurityEvent(ctx, secuEvt)
@@ -55,14 +55,14 @@ func (b *BruteForceDetector) Detect(ctx context.Context, log domain.AccessLog) e
 	return nil
 }
 
-func NewBruteForceDetector(
+func NewHighTrafficDetector(
 	repo repository.LogRepo,
-	bruteForce *cache.BruteForceChecker,
+	highTraffic *cache.HighTrafficChecker,
 	alertCache cache.AlertCache,
 ) Detector {
-	return &BruteForceDetector{
-		repo:              repo,
-		bruteForceChecker: bruteForce,
-		alertCache:        alertCache,
+	return &HighTrafficDetector{
+		repo:               repo,
+		highTrafficChecker: highTraffic,
+		alertCache:         alertCache,
 	}
 }

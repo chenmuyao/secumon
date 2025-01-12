@@ -89,17 +89,20 @@ func main() {
 
 	logDAO := dao.NewLogDAO(db)
 
-	bfCache := cache.NewBruteForceChecker(redis)
+	bfChecker := cache.NewBruteForceChecker(redis)
+	htChecker := cache.NewHighTrafficChecker(redis)
 	alertCache := cache.NewRedisAlertCache(redis)
 
 	logRepo := repository.NewLogRepo(logDAO)
 	alertRepo := repository.NewAlertRepo(logDAO, alertCache)
 
-	bfDetector := svc.NewBruteForceDetector(logRepo, bfCache, alertCache)
+	bfDetector := svc.NewBruteForceDetector(logRepo, bfChecker, alertCache)
+	htDetector := svc.NewHighTrafficDetector(logRepo, htChecker, alertCache)
 	alertSvc := service.NewAlertService(alertRepo)
 
 	err = monitor.NewRabbitMQLogMonitorConsumer(amqpConn).
 		UseBruteForceDetector(bfDetector).
+		UseHighTrafficDetector(htDetector).
 		StartConsumer(exchangeName, qName)
 	if err != nil {
 		panic(err)

@@ -22,7 +22,8 @@ type RabbitMQLogMonitorConsumer struct {
 	consumeTimeout time.Duration
 
 	// detectors
-	bfDetector logmonitor.BruteForceDetector
+	bruteForceDetector  logmonitor.Detector
+	highTrafficDetector logmonitor.Detector
 }
 
 // Consume implements LogMonitorConsumer.
@@ -30,9 +31,15 @@ func (r *RabbitMQLogMonitorConsumer) Consume(ctx context.Context, log domain.Acc
 	slog.Debug("Consuming log", slog.Any("log", log))
 	eg := errgroup.Group{}
 
-	if r.bfDetector != nil {
+	if r.bruteForceDetector != nil {
 		eg.Go(func() error {
-			return r.bfDetector.Detect(ctx, log)
+			return r.bruteForceDetector.Detect(ctx, log)
+		})
+	}
+
+	if r.highTrafficDetector != nil {
+		eg.Go(func() error {
+			return r.highTrafficDetector.Detect(ctx, log)
 		})
 	}
 
@@ -88,9 +95,16 @@ func (r *RabbitMQLogMonitorConsumer) handle(deliveries <-chan amqp.Delivery) {
 }
 
 func (r *RabbitMQLogMonitorConsumer) UseBruteForceDetector(
-	bf logmonitor.BruteForceDetector,
+	bf logmonitor.Detector,
 ) *RabbitMQLogMonitorConsumer {
-	r.bfDetector = bf
+	r.bruteForceDetector = bf
+	return r
+}
+
+func (r *RabbitMQLogMonitorConsumer) UseHighTrafficDetector(
+	ht logmonitor.Detector,
+) *RabbitMQLogMonitorConsumer {
+	r.highTrafficDetector = ht
 	return r
 }
 
