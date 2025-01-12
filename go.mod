@@ -3,11 +3,13 @@ module github.com/chenmuyao/secumon
 go 1.23.1
 
 require (
+	github.com/chenmuyao/generique v0.0.0-20241225095858-3cc623a66ea1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/redis/go-redis/v9 v9.7.0
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/mock v0.5.0
+	golang.org/x/sync v0.7.0
 	gorm.io/driver/postgres v1.5.11
 	gorm.io/gorm v1.25.12
 )
@@ -47,7 +49,6 @@ require (
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.23.0 // indirect
 	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect

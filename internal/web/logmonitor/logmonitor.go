@@ -3,27 +3,37 @@ package logmonitor
 import (
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/chenmuyao/secumon/internal/domain"
 	"github.com/chenmuyao/secumon/internal/event/monitor"
+	"github.com/chenmuyao/secumon/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
 type LogHandler struct {
-	timeFormat string
-	publisher  monitor.LogMonitorPublisher
+	timeFormat        string
+	publisher         monitor.LogMonitorPublisher
+	alertSvc          service.AlertService
+	defaultQueryLimit int
 }
 
-func NewLogHandler(publisher monitor.LogMonitorPublisher) *LogHandler {
+func NewLogHandler(
+	publisher monitor.LogMonitorPublisher,
+	alertSvc service.AlertService,
+) *LogHandler {
 	return &LogHandler{
-		timeFormat: "2006-01-02T03:04:05Z",
-		publisher:  publisher,
+		timeFormat:        "2006-01-02T03:04:05Z",
+		publisher:         publisher,
+		alertSvc:          alertSvc,
+		defaultQueryLimit: 10,
 	}
 }
 
 func (l *LogHandler) RegisterHandlers(s *gin.Engine) {
 	s.POST("/logs", l.AccessLog)
+	s.GET("/alerts", l.Alerts)
 }
 
 func (l *LogHandler) AccessLog(ctx *gin.Context) {
@@ -61,4 +71,30 @@ func (l *LogHandler) AccessLog(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, ResultLogOK)
+}
+
+func (l *LogHandler) Alerts(ctx *gin.Context) {
+	// Query accepted: type, limit
+	// default page size (limit) : 10
+	var err error
+
+	limit := l.defaultQueryLimit
+	limitStr := ctx.Query("limit")
+	if limitStr != "" {
+		limit, err = strconv.Atoi(limitStr)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, ResultErrBadRequest)
+			return
+		}
+	}
+
+	alertType := ctx.Query("type")
+
+	alerts, err := l.alertSvc.GetAlerts(ctx, alertType, limit)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, ResultInternal)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, alerts)
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/chenmuyao/secumon/internal/repository"
 	"github.com/chenmuyao/secumon/internal/repository/cache"
 	"github.com/chenmuyao/secumon/internal/repository/dao"
+	"github.com/chenmuyao/secumon/internal/service"
 	svc "github.com/chenmuyao/secumon/internal/service/logmonitor"
 	"github.com/chenmuyao/secumon/internal/web/logmonitor"
 	"github.com/gin-gonic/gin"
@@ -88,11 +89,14 @@ func main() {
 
 	logDAO := dao.NewLogDAO(db)
 
-	repo := repository.NewLogRepo(logDAO)
-
 	bfCache := cache.NewBruteForceChecker(redis)
+	alertCache := cache.NewRedisAlertCache(redis)
 
-	bfDetector := svc.NewBruteForceDetector(repo, bfCache)
+	logRepo := repository.NewLogRepo(logDAO)
+	alertRepo := repository.NewAlertRepo(logDAO, alertCache)
+
+	bfDetector := svc.NewBruteForceDetector(logRepo, bfCache)
+	alertSvc := service.NewAlertService(alertRepo)
 
 	err = monitor.NewRabbitMQLogMonitorConsumer(amqpConn).
 		UseBruteForceDetector(bfDetector).
@@ -101,7 +105,7 @@ func main() {
 		panic(err)
 	}
 
-	hdl := logmonitor.NewLogHandler(publisher)
+	hdl := logmonitor.NewLogHandler(publisher, alertSvc)
 	hdl.RegisterHandlers(server)
 
 	server.Run(":8989")

@@ -172,7 +172,7 @@ func TestAccessLogAPI(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			publisher := tc.mock(ctrl)
 			// create the test server
-			hdl := NewLogHandler(publisher)
+			hdl := NewLogHandler(publisher, nil)
 			server := gin.Default()
 
 			hdl.RegisterHandlers(server)

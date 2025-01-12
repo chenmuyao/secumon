@@ -10,6 +10,11 @@ import (
 
 type LogDAO interface {
 	UpsertSecurityEvent(ctx context.Context, secuEvt SecurityEvent) error
+	FindAlerts(
+		ctx context.Context,
+		alertType string,
+		limit int,
+	) ([]SecurityEvent, error)
 }
 
 type SecurityEvent struct {
@@ -18,14 +23,36 @@ type SecurityEvent struct {
 	UpdatedAt time.Time `gorm:"index"`
 
 	Type      string    `gorm:"uniqueIndex:ip_type_ts,length=128"`
-	Timestamp time.Time `gorm:"uniqueIndex:ip_type_ts"`
 	ClientIP  string    `gorm:"uniqueIndex:ip_type_ts,length=128"`
+	Timestamp time.Time `gorm:"uniqueIndex:ip_type_ts"`
 	Attacks   int
 	Details   string
 }
 
 type GORMLogDAO struct {
 	db *gorm.DB
+}
+
+// FindAlerts implements LogDAO.
+func (g *GORMLogDAO) FindAlerts(
+	ctx context.Context,
+	alertType string,
+	limit int,
+) ([]SecurityEvent, error) {
+	var res []SecurityEvent
+	var err error
+	if alertType == "" {
+		// don't select on the alert type
+		err = g.db.WithContext(ctx).Limit(limit).Order("updated_at DESC").Find(&res).Error
+		return res, err
+	}
+	err = g.db.WithContext(ctx).
+		Where("type = ?", alertType).
+		Limit(limit).
+		Order("updated_at DESC").
+		Find(&res).
+		Error
+	return res, err
 }
 
 // UpsertSecurityEvent implements LogDAO.

@@ -33,7 +33,7 @@ func (b *bruteForceDetector) Detect(ctx context.Context, log domain.AccessLog) e
 	}
 	// In case of an attack
 	// Log
-	slog.Info("Brute force attack detected from IP", slog.Any("IP", secuEvt.ClientIP))
+	slog.Info("[ALERT] Brute force attack detected", slog.Any("IP", secuEvt.ClientIP))
 	// write the DB
 
 	err = b.repo.UpsertSecurityEvent(ctx, secuEvt)
