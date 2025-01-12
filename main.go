@@ -9,6 +9,7 @@ import (
 	"github.com/chenmuyao/secumon/internal/event/monitor"
 	"github.com/chenmuyao/secumon/internal/repository"
 	"github.com/chenmuyao/secumon/internal/repository/cache"
+	"github.com/chenmuyao/secumon/internal/repository/dao"
 	svc "github.com/chenmuyao/secumon/internal/service/logmonitor"
 	"github.com/chenmuyao/secumon/internal/web/logmonitor"
 	"github.com/gin-gonic/gin"
@@ -39,13 +40,8 @@ func main() {
 
 	server := gin.Default()
 	server.GET("/", func(ctx *gin.Context) {
-		// Test DB
-		err := db.AutoMigrate(&Test{})
-		if err != nil {
-			panic(err)
-		}
 		// Test redis
-		err = redis.Set(ctx, "test", "secumon", time.Hour).Err()
+		err := redis.Set(ctx, "test", "secumon", time.Hour).Err()
 		if err != nil {
 			panic(err)
 		}
@@ -90,7 +86,9 @@ func main() {
 	}
 	publisher := monitor.NewRabbitMQLogMonitorPublisher(amqpConn, exchangeName)
 
-	repo := repository.NewLogRepo()
+	logDAO := dao.NewLogDAO(db)
+
+	repo := repository.NewLogRepo(logDAO)
 
 	bfCache := cache.NewBruteForceChecker(redis)
 
@@ -112,6 +110,11 @@ func main() {
 func InitDB() *gorm.DB {
 	dsn := "host=localhost user=postgres password=postgres dbname=secumon port=15432 sslmode=disable"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		panic(err)
+	}
+	// Test DB
+	err = db.AutoMigrate(&Test{}, &dao.SecurityEvent{})
 	if err != nil {
 		panic(err)
 	}
