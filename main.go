@@ -95,7 +95,7 @@ func main() {
 	logRepo := repository.NewLogRepo(logDAO)
 	alertRepo := repository.NewAlertRepo(logDAO, alertCache)
 
-	bfDetector := svc.NewBruteForceDetector(logRepo, bfCache)
+	bfDetector := svc.NewBruteForceDetector(logRepo, bfCache, alertCache)
 	alertSvc := service.NewAlertService(alertRepo)
 
 	err = monitor.NewRabbitMQLogMonitorConsumer(amqpConn).

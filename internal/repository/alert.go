@@ -29,7 +29,7 @@ func (a *CachedAlertRepo) GetAlerts(
 	limit int,
 ) ([]domain.Alert, error) {
 	var res []domain.Alert
-	if limit < a.defaultPageSize {
+	if limit <= a.defaultPageSize {
 		// check the cache
 		res, err := a.alertCache.GetAlerts(ctx, alertType)
 		if err == nil {

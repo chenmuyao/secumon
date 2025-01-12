@@ -3,6 +3,7 @@ package logmonitor
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/chenmuyao/secumon/internal/domain"
 	"github.com/chenmuyao/secumon/internal/repository"
@@ -16,6 +17,7 @@ type BruteForceDetector interface {
 type bruteForceDetector struct {
 	repo              repository.LogRepo
 	bruteForceChecker cache.BruteForceChecker
+	alertCache        cache.AlertCache
 }
 
 // Detect implements BruteForceDetector.
@@ -42,16 +44,29 @@ func (b *bruteForceDetector) Detect(ctx context.Context, log domain.AccessLog) e
 	}
 
 	// async delete the cache
-	// TODO: when the query API is implemented
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		er := b.alertCache.DeleteAlerts(ctx, secuEvt.Type)
+		if er != nil {
+			slog.Info("Failed to delete cache", slog.Any("err", er))
+		}
+		er = b.alertCache.DeleteAlerts(ctx, "all")
+		if er != nil {
+			slog.Info("Failed to delete cache", slog.Any("err", er))
+		}
+	}()
 	return nil
 }
 
 func NewBruteForceDetector(
 	repo repository.LogRepo,
 	bruteForce cache.BruteForceChecker,
+	alertCache cache.AlertCache,
 ) BruteForceDetector {
 	return &bruteForceDetector{
 		repo:              repo,
 		bruteForceChecker: bruteForce,
+		alertCache:        alertCache,
 	}
 }
