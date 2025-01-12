@@ -52,7 +52,7 @@ func (a *CachedAlertRepo) GetAlerts(
 			Type:      src.Type,
 			Timestamp: src.CreatedAt.Format(a.timeFormat),
 			ClientIP:  src.ClientIP,
-			Details:   "details todo", // TODO: switch on the type and get a proper detail message
+			Details:   src.Details,
 		}
 	})
 

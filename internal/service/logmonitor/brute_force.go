@@ -16,7 +16,7 @@ type BruteForceDetector interface {
 
 type bruteForceDetector struct {
 	repo              repository.LogRepo
-	bruteForceChecker cache.BruteForceChecker
+	bruteForceChecker *cache.BruteForceChecker
 	alertCache        cache.AlertCache
 }
 
@@ -61,7 +61,7 @@ func (b *bruteForceDetector) Detect(ctx context.Context, log domain.AccessLog) e
 
 func NewBruteForceDetector(
 	repo repository.LogRepo,
-	bruteForce cache.BruteForceChecker,
+	bruteForce *cache.BruteForceChecker,
 	alertCache cache.AlertCache,
 ) BruteForceDetector {
 	return &bruteForceDetector{
